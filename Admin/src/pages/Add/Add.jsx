@@ -3,6 +3,7 @@ import './Add.css'
 import axios, { getErrorMessage } from "../../utils/api"
 import { assets } from '../../assets/assets'
 import { toast } from 'react-toastify'
+import { NPR_RATE } from '../../utils/currency'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
@@ -59,7 +60,7 @@ const Add = ({url}) => {
             const formData= new FormData();
             formData.append("name",data.name.trim())
             formData.append("description",data.description.trim())
-            formData.append("price",Number(data.price))
+            formData.append("price",Number(data.price) / NPR_RATE)
             formData.append("category",data.category)
             formData.append("image",image)
 
@@ -123,8 +124,8 @@ const Add = ({url}) => {
                     </select>
                 </div>
                 <div className="add-price flex-col">
-                    <p>Product Price</p>
-                    <input onChange={onChangeHandler} value={data.price} type="Number" name='price' placeholder='$20' min="0" step="0.01" required/>
+                    <p>Product Price (NPR)</p>
+                    <input onChange={onChangeHandler} value={data.price} type="Number" name='price' placeholder='Rs 300' min="0" step="0.01" required/>
                 </div>
             </div>
                 <button type='submit' className='add-btn' disabled={submitting}>{submitting ? "Adding..." : "Add"}</button>

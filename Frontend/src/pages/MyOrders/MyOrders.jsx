@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react'
 import { StoreContext } from '../../Context/StoreContext.jsx';
 import axios, { getErrorMessage } from '../../utils/api';
 import { assets } from '../../assets/assets';
+import { formatNPR } from '../../utils/currency';
 import './MyOrders.css'
 
 
@@ -45,7 +46,7 @@ const MyOrders = () => {
                                 return item.name+" x "+item.quantity+","
                             }
                         })}</p>
-                        <p>${order.amount}.00</p>
+                        <p>{formatNPR(order.amount)}</p>
                         <p>Items: {order.items.length}</p>
                         <p><span>&#x25cf;</span> <b>{order.status}</b></p>
                         <button onClick={fetchOrders}>Track Order</button>

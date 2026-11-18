@@ -6,10 +6,11 @@ import userModel from "../models/userModel.js";
 import foodModel from "../models/foodModel.js";
 
 const DELIVERY_FEE = 2;
-const CURRENCY = "inr";
-// Existing pricing convention in this project: displayed prices are
-// multiplied by 80 when sent to Stripe in INR.
-const INR_UNIT_MULTIPLIER = 80;
+const CURRENCY = "npr";
+// Menu prices are stored in the project's original base units. Convert them to
+// Nepalese Rupees (1 USD = 128 NPR) so Stripe charges the same NPR amounts the
+// storefront displays.
+const NPR_UNIT_MULTIPLIER = 128;
 const MAX_CART_ITEMS = 50;
 const MAX_ITEM_QUANTITY = 20;
 const ORDER_STATUSES = new Set(["Food Processing", "Out for delivery", "Delivered"]);
@@ -158,7 +159,7 @@ const placeOrder = async (req, res) => {
                 product_data: {
                     name: String(item.name).slice(0, 250),
                 },
-                unit_amount: Math.round(item.price * 100 * INR_UNIT_MULTIPLIER),
+                unit_amount: Math.round(item.price * 100 * NPR_UNIT_MULTIPLIER),
             },
             quantity: item.quantity,
         }));
@@ -169,7 +170,7 @@ const placeOrder = async (req, res) => {
                 product_data: {
                     name: "Delivery Charges",
                 },
-                unit_amount: Math.round(DELIVERY_FEE * 100 * INR_UNIT_MULTIPLIER),
+                unit_amount: Math.round(DELIVERY_FEE * 100 * NPR_UNIT_MULTIPLIER),
             },
             quantity: 1,
         });

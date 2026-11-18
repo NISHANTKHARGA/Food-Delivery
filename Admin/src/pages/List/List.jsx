@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import './List.css'
 import axios, { getErrorMessage } from "../../utils/api"
 import {toast} from "react-toastify"
+import { formatNPR } from "../../utils/currency"
 const List = ({url}) => {
 
 
@@ -61,7 +62,7 @@ const List = ({url}) => {
               <img src={`${url}/images/`+item.image} alt=''/>
               <p>{item.name}</p>
               <p>{item.category}</p>
-              <p>${item.price}</p>
+              <p>{formatNPR(item.price)}</p>
               <p onClick={()=>removeFood(item._id)} className='cursor'>X</p>
               </div>
           )
