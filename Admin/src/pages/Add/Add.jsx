@@ -1,12 +1,17 @@
 import React, {useState } from 'react'
 import './Add.css'
-import axios from "axios"
+import axios, { getErrorMessage } from "../../utils/api"
 import { assets } from '../../assets/assets'
 import { toast } from 'react-toastify'
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+
 const Add = ({url}) => {
 
 
     const [image,setImage]=useState(false);
+    const [submitting,setSubmitting]=useState(false);
     const [data,setData]=useState({
         name:"",
         description:"",
@@ -21,27 +26,65 @@ const Add = ({url}) => {
 
         }
 
+        const onImageChange=(event)=>{
+            const file=event.target.files?.[0]
+            if (!file) {
+                setImage(false)
+                return
+            }
+            if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                toast.error("Only JPG, PNG, WEBP or GIF images are allowed")
+                event.target.value=""
+                setImage(false)
+                return
+            }
+            if (file.size > MAX_IMAGE_BYTES) {
+                toast.error("Image must be 5MB or smaller")
+                event.target.value=""
+                setImage(false)
+                return
+            }
+            setImage(file)
+        }
+
         const onSubmitHandler =async(event)=>{
             event.preventDefault();
+            if (submitting) return;
+
+            if (!image) {
+                toast.error("Please upload an image")
+                return
+            }
+
             const formData= new FormData();
-            formData.append("name",data.name)
-            formData.append("description",data.description)
+            formData.append("name",data.name.trim())
+            formData.append("description",data.description.trim())
             formData.append("price",Number(data.price))
             formData.append("category",data.category)
             formData.append("image",image)
-            const response=await axios.post(`${url}/api/food/add`,formData)
-            if(response.data.success){
-                setData({
-                    name:"",
-                    description:"",
-                    price:"",
-                    category:"Salad"
-                })
-                setImage(false)
-                toast.success(response.data.message)
+
+            setSubmitting(true)
+            try {
+                const response=await axios.post(`${url}/api/food/add`,formData)
+                if(response.data?.success){
+                    setData({
+                        name:"",
+                        description:"",
+                        price:"",
+                        category:"Salad"
+                    })
+                    setImage(false)
+                    toast.success(response.data.message)
+                }
+                else{
+                    toast.error(response.data?.message || "Error")
+                }
             }
-            else{
-                toast.error(response.data.message)
+            catch (error) {
+                toast.error(getErrorMessage(error, "Could not add the food item"))
+            }
+            finally {
+                setSubmitting(false)
             }
         }
         
@@ -55,15 +98,15 @@ const Add = ({url}) => {
                 <label htmlFor="image">
                     <img src={image?URL.createObjectURL(image):assets.upload_area} alt="" />
                 </label>
-                <input onChange={(e)=>setImage(e.target.files[0])} type="file" id='image' hidden required />
+                <input onChange={onImageChange} type="file" id='image' accept="image/png,image/jpeg,image/webp,image/gif" hidden />
             </div>
             <div className="add-product-name flex-col">
                 <p>Product Name</p>
-                <input onChange={onChangeHandler} value={data.name} type="text" name='name' placeholder='Type here' />
+                <input onChange={onChangeHandler} value={data.name} type="text" name='name' placeholder='Type here' maxLength={100} required/>
                 </div>
                 <div className='add-product-description flex-col'>
                 <p>Product description</p>
-                <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder="Write content here" required></textarea>
+                <textarea onChange={onChangeHandler} value={data.description} name="description" rows="6" placeholder="Write content here" maxLength={1000} required></textarea>
             </div>
             <div className="add-category-price">
                 <div className="add-category flex-col">
@@ -81,10 +124,10 @@ const Add = ({url}) => {
                 </div>
                 <div className="add-price flex-col">
                     <p>Product Price</p>
-                    <input onChange={onChangeHandler} value={data.price} type="Number" name='price' placeholder='$20'/>
+                    <input onChange={onChangeHandler} value={data.price} type="Number" name='price' placeholder='$20' min="0" step="0.01" required/>
                 </div>
             </div>
-                <button type='submit' className='add-btn'>Add</button>
+                <button type='submit' className='add-btn' disabled={submitting}>{submitting ? "Adding..." : "Add"}</button>
         </form>
 
     </div>

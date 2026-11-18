@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { StoreContext } from '../../Context/StoreContext.jsx';
-import axios from 'axios';
+import axios, { getErrorMessage } from '../../utils/api';
 import { assets } from '../../assets/assets';
 import './MyOrders.css'
 
@@ -12,9 +12,15 @@ const MyOrders = () => {
     
     
     const fetchOrders = async () => {
-        const response = await axios.post(url+"/api/order/userorders",{},{headers:{token}});
-        setData(response.data.data);
-        console.log(response.data.data);
+        try {
+            const response = await axios.post(url+"/api/order/userorders",{},{headers:{token}});
+            if (response.data?.success) {
+                setData(Array.isArray(response.data.data) ? response.data.data : []);
+            }
+        }
+        catch (error) {
+            console.error(getErrorMessage(error, "Could not load your orders"));
+        }
     }
 
     useEffect(()=>{
@@ -29,7 +35,7 @@ const MyOrders = () => {
         <div className="container">
             {data.map((order,index)=>{
                 return (
-                    <div key={index} className='my-orders-order'>
+                    <div key={order._id || index} className='my-orders-order'>
                         <img src={assets.parcel_icon} alt="" />
                         <p>{order.items.map((item,index)=>{
                             if (index === order.items.length-1) {

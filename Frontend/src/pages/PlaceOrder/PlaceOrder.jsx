@@ -1,12 +1,14 @@
 import React, { useState, useEffect,useContext } from 'react'
 import './PlaceOrder.css'
 import { StoreContext } from '../../Context/StoreContext'
-import axios from 'axios'
+import axios, { getErrorMessage } from '../../utils/api'
 import { useNavigate } from 'react-router-dom'
 
 
 const PlaceOrder = () => {
   const {getTotalCartAmount,token,food_list,cartItems,url} =useContext(StoreContext);
+  const navigate = useNavigate();
+  const [submitting,setSubmitting] = useState(false);
   const [data,setData] = useState({
     firstName:"",
     lastName:"",
@@ -23,34 +25,60 @@ const PlaceOrder = () => {
     const value = event.target.value;
     setData(data=>({...data,[name]:value}))
   }
-  const placeOrder = async (event) => {
-    event.preventDefault();
-    let orderItems = [];
-    food_list.map((item)=>{
-      if (cartItems[item._id]>0) {
-        let itemInfo = item;
-        itemInfo["quantity"] = cartItems[item._id];
-        orderItems.push(itemInfo)
-      }
-    })
-    let orderData = {
-      address:data,
-      items:orderItems,
-      amount:getTotalCartAmount()+2,
-    }
-    let response = await axios.post(url+"/api/order/place",orderData,{headers:{token}})
-    
 
-    if (response.data.success){
-      const {session_url} = response.data;
-      window.location.replace(session_url);
+  const redirectToCheckout = (sessionUrl) => {
+    try {
+      const parsed = new URL(sessionUrl);
+      if (parsed.protocol === "https:" && (parsed.hostname === "stripe.com" || parsed.hostname.endsWith(".stripe.com"))) {
+        window.location.replace(parsed.toString());
+        return true;
+      }
+    } catch {
+      // Ignore malformed URLs and fall through to the error branch.
     }
-    else{
-      alert("Error");
-    }
+    return false;
   }
 
-  const navigate = useNavigate();
+  const placeOrder = async (event) => {
+    event.preventDefault();
+    if (submitting) return;
+
+    // Only send item ids and quantities. The server looks up prices itself.
+    const orderItems = [];
+    food_list.forEach((item) => {
+      const quantity = Number(cartItems[item._id]) || 0;
+      if (quantity > 0) {
+        orderItems.push({ id: item._id, quantity });
+      }
+    })
+
+    if (orderItems.length === 0) {
+      alert("Your cart is empty");
+      navigate('/cart');
+      return;
+    }
+
+    const orderData = {
+      address:data,
+      items:orderItems,
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await axios.post(url+"/api/order/place",orderData,{headers:{token}})
+
+      if (response.data?.success && redirectToCheckout(response.data.session_url)) {
+        return;
+      }
+      alert(getErrorMessage({ response }, "Could not start checkout"));
+    }
+    catch (error) {
+      alert(getErrorMessage(error, "Could not start checkout"));
+    }
+    finally {
+      setSubmitting(false);
+    }
+  }
 
   useEffect(()=>{
     if (!token){
@@ -104,7 +132,7 @@ const PlaceOrder = () => {
               <b>${getTotalCartAmount()===0?0:getTotalCartAmount()+2}</b>
             </div>
           </div>
-            <button type='submit'>PROCEED TO PAYMENT</button>
+            <button type='submit' disabled={submitting}>{submitting ? "PLEASE WAIT..." : "PROCEED TO PAYMENT"}</button>
         </div>
       </div>
 
