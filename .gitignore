@@ -27,8 +27,3 @@ Thumbs.db
 # Uploaded user content
 Backend/uploads/*
 !Backend/uploads/.gitkeep
-
-# Local deployment scratch files
-release/
-release.env
-*.tar.gz
