@@ -153,3 +153,12 @@ jobs:
             echo "Deployment completed successfully!"
 
           EOF
+
+      - name: Website Deployment URL
+        run: |
+          echo "=================================="
+          echo "Food Delivery Website Deployed!"
+          echo "=================================="
+          echo "Website: http://${{ secrets.EC2_HOST }}"
+          echo "Admin: http://${{ secrets.EC2_HOST }}/admin"
+          echo "=================================="
