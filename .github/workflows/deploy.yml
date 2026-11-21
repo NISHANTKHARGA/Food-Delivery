@@ -1,0 +1,75 @@
+name: Deploy Food Delivery to AWS EC2
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy application
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            "$EC2_USER@$EC2_HOST" 'bash -se' <<'REMOTE'
+
+          set -Eeuo pipefail
+
+          APP_DIR="/var/www/food-delivery/Food-Delivery"
+
+          echo "Starting deployment..."
+
+          cd "$APP_DIR"
+
+          echo "Pulling latest code..."
+          git fetch origin master
+          git pull --ff-only origin master
+
+          echo "Installing Frontend dependencies..."
+          cd "$APP_DIR/Frontend"
+          npm ci
+          npm run build
+
+          echo "Installing Admin dependencies..."
+          cd "$APP_DIR/Admin"
+          npm ci
+          npm run build
+
+          echo "Installing Backend dependencies..."
+          cd "$APP_DIR/Backend"
+          npm ci
+
+          echo "Restarting Backend..."
+          pm2 restart food-delivery-backend --update-env
+
+          echo "Checking PM2 status..."
+          pm2 status
+
+          echo "Deployment completed successfully!"
+
+          REMOTE
