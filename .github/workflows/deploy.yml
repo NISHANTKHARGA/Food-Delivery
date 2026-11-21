@@ -1,75 +1,54 @@
-name: Deploy Food Delivery to AWS EC2
+name: Deploy to AWS EC2
 
 on:
   push:
     branches:
-      - master
-  workflow_dispatch:
+      - main
 
-concurrency:
-  group: production-deployment
-  cancel-in-progress: false
+  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to EC2
+    name: Deploy Application
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Configure SSH
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_ed25519
+          echo "${{ secrets.EC2_SSH_KEY }}" | base64 -d > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
-
-      - name: Deploy application
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/id_ed25519 \
-            "$EC2_USER@$EC2_HOST" 'bash -se' <<'REMOTE'
+            -o StrictHostKeyChecking=yes \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
 
-          set -Eeuo pipefail
+            cd /var/www/food-delivery/Food-Delivery
 
-          APP_DIR="/var/www/food-delivery/Food-Delivery"
+            echo "Pulling latest changes..."
+            git pull origin main
 
-          echo "Starting deployment..."
+            echo "Installing backend dependencies..."
+            cd Backend
+            npm install
+            pm2 restart all
 
-          cd "$APP_DIR"
+            echo "Building frontend..."
+            cd ../Frontend
+            npm install
+            npm run build
 
-          echo "Pulling latest code..."
-          git fetch origin master
-          git pull --ff-only origin master
+            echo "Building admin..."
+            cd ../Admin
+            npm install
+            npm run build
 
-          echo "Installing Frontend dependencies..."
-          cd "$APP_DIR/Frontend"
-          npm ci
-          npm run build
+            echo "Deployment completed successfully!"
 
-          echo "Installing Admin dependencies..."
-          cd "$APP_DIR/Admin"
-          npm ci
-          npm run build
-
-          echo "Installing Backend dependencies..."
-          cd "$APP_DIR/Backend"
-          npm ci
-
-          echo "Restarting Backend..."
-          pm2 restart food-delivery-backend --update-env
-
-          echo "Checking PM2 status..."
-          pm2 status
-
-          echo "Deployment completed successfully!"
-
-          REMOTE
+          EOF
