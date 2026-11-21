@@ -1,4 +1,4 @@
-name: Food Delivery CI/CD Pipeline
+name: Food-Delivery
 
 on:
   push:
