@@ -17,6 +17,13 @@ A full-stack food delivery application with a React storefront, a React admin pa
 
 ![Bitezy storefront banner](Frontend/public/header_img.jpg)
 
+## Live deployment
+
+Hosted on Vercel:
+
+- **Storefront:** https://food-delivery-snowy-psi.vercel.app/
+- **Admin panel:** https://food-delivery-snowy-psi.vercel.app/admin/
+
 ## Features
 
 **Storefront**
@@ -160,6 +167,12 @@ This upserts ten items by name into MongoDB. Their images live in the tracked `B
 | `GET` | `/images/<filename>` | Public | Uploaded food images |
 
 ## Deployment
+
+### Vercel
+
+`vercel.json` builds the storefront into `dist/`, the admin panel into `dist/admin/`, and the starter images into `dist/images/`. The Express API runs as the catch-all serverless function `api/[...path].js`; on Vercel, uploads use `/tmp/uploads` because the filesystem is read-only elsewhere. Set `VITE_API_URL=/` so the browser calls the API on the same origin, and configure the backend secrets (`MONGODB_URI`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, admin credentials, etc.) as Vercel environment variables. Deploy with `vercel --prod`.
+
+### AWS EC2 (GitHub Actions)
 
 The `food delivery` GitHub Actions workflow runs on pushes to `main` or `master` and can also be started manually. It builds the storefront and admin, runs available tests, then SSHes into the EC2 instance at `/var/www/food-delivery/Food-Delivery`, pulls the branch, installs dependencies, restarts PM2, and rebuilds both frontends. A final step prints the deployed URLs.
 

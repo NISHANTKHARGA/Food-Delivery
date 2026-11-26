@@ -1,14 +1,11 @@
-import path from "node:path";
-import fs from "node:fs";
 import crypto from "node:crypto";
 import express from "express";
 import multer from "multer";
 import { addFood, listFood, removeFood } from "../controllers/foodController.js";
 import { adminMiddleware } from "../middleware/auth.js";
+import { UPLOADS_DIR } from "../config/uploads.js";
 
 const foodRouter = express.Router();
-const UPLOADS_DIR = path.resolve("uploads");
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Only allow genuine raster images, and derive the extension from the MIME
 // type instead of trusting the client-supplied filename.

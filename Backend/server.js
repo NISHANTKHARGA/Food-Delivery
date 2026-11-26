@@ -1,11 +1,10 @@
 import "dotenv/config";
-import path from "node:path";
-import fs from "node:fs";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { connectDB } from "./config/db.js";
+import { UPLOADS_DIR } from "./config/uploads.js";
 import foodRouter from "./routes/foodRoute.js";
 import userRouter from "./routes/userRoute.js";
 import cartRouter from "./routes/cartRoute.js";
@@ -56,6 +55,14 @@ app.use(
             if (!origin || allowedOrigins.includes(origin)) {
                 return callback(null, true);
             }
+            // On Vercel the storefront, admin panel and API share one domain.
+            try {
+                if (process.env.VERCEL_URL && new URL(origin).host === process.env.VERCEL_URL) {
+                    return callback(null, true);
+                }
+            } catch {
+                // Ignore a malformed Origin header.
+            }
             return callback(null, false);
         },
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -79,14 +86,23 @@ const apiLimiter = rateLimit({
 });
 app.use("/api", apiLimiter);
 
+// Serverless invocations need the database ready before a route runs.
+const dbReady = connectDB().catch((error) => {
+    console.error("Database connection failed:", error.message);
+    throw error;
+});
+
+app.use("/api", (req, res, next) => {
+    dbReady
+        .then(() => next())
+        .catch(() => res.status(500).json({ success: false, message: "Database unavailable" }));
+});
+
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
-const uploadsDir = path.resolve("uploads");
-fs.mkdirSync(uploadsDir, { recursive: true });
-
 app.use("/api/food", foodRouter);
-app.use("/images", express.static(uploadsDir, { dotfiles: "deny", index: false, maxAge: "1d" }));
+app.use("/images", express.static(UPLOADS_DIR, { dotfiles: "deny", index: false, maxAge: "1d" }));
 app.use("/api/user", userRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/order", orderRouter);
@@ -136,10 +152,10 @@ app.use((error, req, res, next) => {
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
-app.listen(port, () => {
-    console.log(`Server started on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+    app.listen(port, () => {
+        console.log(`Server started on http://localhost:${port}`);
+    });
+}
 
-connectDB().catch((error) => {
-    console.error("Database connection failed:", error.message);
-});
+export default app;

@@ -2,8 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import mongoose from "mongoose";
 import foodModel from "../models/foodModel.js";
-
-const UPLOADS_DIR = path.resolve("uploads");
+import { UPLOADS_DIR } from "../config/uploads.js";
 const CATEGORIES = new Set([
     "Salad",
     "Rolls",
