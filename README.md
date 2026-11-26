@@ -95,6 +95,8 @@ cp .env.example .env      # on Windows: copy .env.example .env
 npm run server            # starts on http://localhost:4000 with nodemon
 ```
 
+Starting the backend also copies the starter images from `Backend/seed-images/` into `Backend/uploads/`, which is the folder the local API serves from. Keep this terminal running; the storefront and admin panel call the API at `http://localhost:4000`.
+
 ### 2. Storefront
 
 ```bash

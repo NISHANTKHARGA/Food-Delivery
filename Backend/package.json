@@ -4,8 +4,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "server": "nodemon server.js"
+    "start": "node scripts/prepare-images.mjs && node server.js",
+    "server": "node scripts/prepare-images.mjs && nodemon server.js"
   },
   "author": "",
   "license": "ISC",
