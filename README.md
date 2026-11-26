@@ -110,6 +110,17 @@ Use `npm run build` in `Frontend/` and `Admin/` to produce production bundles in
 
 > Never commit `.env` files or uploaded images. Use the `.env.example` files as templates; `Backend/uploads/` is gitignored.
 
+### Starter menu
+
+A small starter catalog is included so a fresh database is not empty:
+
+```bash
+cd Backend
+node scripts/seed-menu.js
+```
+
+This upserts ten items by name into MongoDB. Their images live in the tracked `Backend/seed-images/` folder; the deployment workflow copies them into `Backend/uploads/` on the server so the API can serve them from `/images/<filename>`.
+
 ## Environment variables
 
 **Backend (`Backend/.env`)**

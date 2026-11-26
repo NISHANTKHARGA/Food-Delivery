@@ -137,6 +137,10 @@ jobs:
             cd Backend
             npm install
 
+            echo "Installing starter menu images..."
+            mkdir -p uploads
+            cp -f ../seed-images/* uploads/
+
             echo "Restarting backend..."
             pm2 restart all
 
